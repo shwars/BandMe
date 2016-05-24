@@ -1,0 +1,5 @@
+SELECT
+    AVG(HR) as AvHR, MIN([TimeStamp]) as Time 
+INTO [HRBI]
+FROM [InHR] TIMESTAMP BY [TimeStamp]
+GROUP BY TumblingWindow(Duration(second,5))
