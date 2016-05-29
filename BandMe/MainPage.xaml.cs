@@ -1,5 +1,6 @@
 ﻿using Microsoft.Azure.Devices.Client;
 using Microsoft.Band;
+using Microsoft.Band.Notifications;
 using Microsoft.Band.Sensors;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.UI;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -53,6 +55,7 @@ namespace BandMe
             base.OnNavigatedTo(e);
             iothub = DeviceClient.CreateFromConnectionString("HostName=HRHub.azure-devices.net;DeviceId=shwarsphone;SharedAccessKey=EyWYH2YyV2wveHorZziuIEGBvfEN5fcFqmLCbe51X6o=");
             await iothub.OpenAsync();
+            Receive();
 
             IBandInfo[] pairedBands = await BandClientManager.Instance.GetBandsAsync();
             if (pairedBands.Length > 0)
@@ -114,5 +117,32 @@ namespace BandMe
                  txt.Text = $"{HR} ({desc})");
             await Send(new HRReading() { HR = HR, Id = "shwarsphone", Reading = desc, TimeStamp = DateTime.Now });
         }
+
+        private async Task Receive()
+        {
+            await Task.Delay(3000);
+            while (true)
+            {
+                var msg = await iothub.ReceiveAsync();
+                if (msg != null)
+                {
+                    var s = Encoding.ASCII.GetString(msg.GetBytes());
+                    // Сделать что-то с полученным сообщением, например, зажечь светодиод
+                    if (s == "1")
+                    {
+                        light.Fill = new SolidColorBrush(Colors.Red);
+                        if (Band!=null) await Band.NotificationManager.VibrateAsync(VibrationType.NotificationTwoTone);
+                    }
+                    if (s == "0")
+                    {
+                        light.Fill = new SolidColorBrush(Colors.White);
+                        if (Band!=null) await Band.NotificationManager.VibrateAsync(VibrationType.RampUp);
+                    }
+                    await iothub.CompleteAsync(msg);
+                }
+            }
+        }
+
+
     }
 }
